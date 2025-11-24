@@ -37,5 +37,4 @@ fi
 echo "🚀 Starting server..."
 echo ""
 
-# Start the server
-PORT=18800 node server.js
+USE_HTTPS=true node server.js

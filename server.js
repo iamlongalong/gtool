@@ -1,11 +1,20 @@
 #!/usr/bin/env node
 
+const https = require('https');
 const http = require('http');
+const fs = require('fs');
+const path = require('path');
 const { exec } = require('child_process');
 
 // 配置
-const PORT = process.env.PORT || 8080;
-const HOST = process.env.HOST || 'localhost';
+const USE_HTTPS = process.env.USE_HTTPS === 'true' || process.env.USE_HTTPS === '1';
+const PORT = process.env.PORT || 18800;
+const HOST = process.env.HOST || '127.0.0.1';
+
+// SSL 证书路径 (可通过环境变量覆盖)
+const CERT_DIR = process.env.CERT_DIR || path.join(process.env.HOME, 'code', 'MyCerts');
+const CERT_FILE = process.env.CERT_FILE || 'localhost.pem';
+const KEY_FILE = process.env.KEY_FILE || 'localhost-key.pem';
 
 // 危险命令列表
 const DANGEROUS_PATTERNS = [
@@ -210,9 +219,9 @@ function handleHealthCheck(req, res) {
 }
 
 /**
- * 创建 HTTP 服务器
+ * 请求处理函数
  */
-const server = http.createServer((req, res) => {
+function requestHandler(req, res) {
     // CORS 头
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
@@ -231,7 +240,77 @@ const server = http.createServer((req, res) => {
         res.writeHead(404, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ error: 'Not found' }));
     }
-});
+}
+
+/**
+ * 创建并启动服务器
+ */
+let server;
+
+if (USE_HTTPS) {
+    // HTTPS 模式
+    const certPath = path.join(CERT_DIR, CERT_FILE);
+    const keyPath = path.join(CERT_DIR, KEY_FILE);
+
+    if (!fs.existsSync(certPath) || !fs.existsSync(keyPath)) {
+        console.error('❌ SSL certificates not found!');
+        console.error(`   Cert: ${certPath}`);
+        console.error(`   Key:  ${keyPath}`);
+        console.error('');
+        console.error('Please set the correct paths using environment variables:');
+        console.error('   export CERT_DIR=/path/to/certs');
+        console.error('   export CERT_FILE=cert.pem');
+        console.error('   export KEY_FILE=key.pem');
+        process.exit(1);
+    }
+
+    const httpsOptions = {
+        key: fs.readFileSync(keyPath),
+        cert: fs.readFileSync(certPath)
+    };
+
+    server = https.createServer(httpsOptions, requestHandler);
+
+    server.listen(PORT, HOST, () => {
+        console.log('='.repeat(60));
+        console.log('  GitHub Clone & Open - HTTPS Server');
+        console.log('='.repeat(60));
+        console.log(`  🔒 Server running at: https://${HOST}:${PORT}`);
+        console.log(`  API endpoint: https://${HOST}:${PORT}/api/v1/exec`);
+        console.log(`  Health check: https://${HOST}:${PORT}/health`);
+        console.log('='.repeat(60));
+        console.log(`  Using certificates from: ${CERT_DIR}`);
+        console.log(`    - ${CERT_FILE}`);
+        console.log(`    - ${KEY_FILE}`);
+        console.log('='.repeat(60));
+        console.log('  ⚠️  Accept self-signed certificate in browser first');
+        console.log(`  Visit: https://${HOST}:${PORT}/health`);
+        console.log('='.repeat(60));
+        console.log('  Press Ctrl+C to stop');
+        console.log('='.repeat(60));
+        console.log('');
+    });
+
+} else {
+    // HTTP 模式
+    server = http.createServer(requestHandler);
+
+    server.listen(PORT, HOST, () => {
+        console.log('='.repeat(60));
+        console.log('  GitHub Clone & Open - HTTP Server');
+        console.log('='.repeat(60));
+        console.log(`  Server running at: http://${HOST}:${PORT}`);
+        console.log(`  API endpoint: http://${HOST}:${PORT}/api/v1/exec`);
+        console.log(`  Health check: http://${HOST}:${PORT}/health`);
+        console.log('='.repeat(60));
+        console.log('  ⚠️  WARNING: Using HTTP (not secure for HTTPS sites)');
+        console.log('  To use HTTPS: USE_HTTPS=true node server.js');
+        console.log('='.repeat(60));
+        console.log('  Press Ctrl+C to stop');
+        console.log('='.repeat(60));
+        console.log('');
+    });
+}
 
 // 错误处理
 server.on('error', (error) => {
@@ -258,18 +337,4 @@ process.on('SIGTERM', () => {
         console.log('[INFO] Server closed');
         process.exit(0);
     });
-});
-
-// 启动服务器
-server.listen(PORT, HOST, () => {
-    console.log('='.repeat(60));
-    console.log('  GitHub Clone & Open - HTTP Server');
-    console.log('='.repeat(60));
-    console.log(`  Server running at: http://${HOST}:${PORT}`);
-    console.log(`  API endpoint: http://${HOST}:${PORT}/api/v1/exec`);
-    console.log(`  Health check: http://${HOST}:${PORT}/health`);
-    console.log('='.repeat(60));
-    console.log('  Press Ctrl+C to stop');
-    console.log('='.repeat(60));
-    console.log('');
 });

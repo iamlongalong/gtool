@@ -10,6 +10,7 @@
 // @grant        GM_xmlhttpRequest
 // @connect      localhost
 // @connect      127.0.0.1
+// @connect      *
 // @run-at       document-idle
 // ==/UserScript==
 
@@ -20,7 +21,7 @@
     class ConfigManager {
         constructor() {
             this.defaults = {
-                apiUrl: 'http://localhost:18800/api/v1/exec',
+                apiUrl: 'https://localhost:18800/api/v1/exec',
                 baseDir: '~/code',
                 editor: 'code', // vscode, code-insiders, cursor, idea, etc.
                 defaultBranch: 'main',
@@ -338,6 +339,9 @@ echo "Repository ready at: ${targetPath}"
             console.groupEnd();
 
             return new Promise((resolve, reject) => {
+                console.log('🌐 Initiating GM_xmlhttpRequest to:', this.config.apiUrl);
+                console.log('🔧 Request will timeout after 60s');
+
                 GM_xmlhttpRequest({
                     method: 'POST',
                     url: this.config.apiUrl,
@@ -345,6 +349,7 @@ echo "Repository ready at: ${targetPath}"
                         'Content-Type': 'application/json'
                     },
                     data: JSON.stringify(payload),
+                    anonymous: false,
                     onload: (response) => {
                         console.group('📥 GitHub Clone & Open - Response');
                         console.log('📊 Status:', response.status, response.statusText);
@@ -390,17 +395,24 @@ echo "Repository ready at: ${targetPath}"
                     },
                     onerror: (error) => {
                         console.group('❌ GitHub Clone & Open - Network Error');
-                        console.error('Error:', error);
+                        console.error('Error object:', error);
+                        console.error('Error type:', typeof error);
+                        console.error('Error keys:', error ? Object.keys(error) : 'null');
+                        console.error('Full error details:', JSON.stringify(error, null, 2));
                         console.groupEnd();
-                        reject(new Error('Network error: ' + error));
+                        reject(new Error('Network error - check console for details'));
                     },
                     ontimeout: () => {
                         console.group('⏰ GitHub Clone & Open - Timeout');
-                        console.error('Request timed out after 30s');
+                        console.error('Request timed out after 60s');
+                        console.error('This might indicate:');
+                        console.error('1. Server is not responding');
+                        console.error('2. @connect directive not working');
+                        console.error('3. Browser blocking the request');
                         console.groupEnd();
-                        reject(new Error('Request timeout'));
+                        reject(new Error('Request timeout - server might be down or port blocked'));
                     },
-                    timeout: 30000
+                    timeout: 60000
                 });
             });
         }
