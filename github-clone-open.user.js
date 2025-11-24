@@ -210,10 +210,13 @@
 
         getDefaultBranch() {
             // Try to get default branch from page
-            const branchButton = document.querySelector('[data-hotkey="w"]');
+            let branchButton = document.querySelector("#ref-picker-repos-header-ref-selector")
+            if (!branchButton) {
+                branchButton = document.querySelector('[data-hotkey="w"]');
+            }
             if (branchButton) {
                 const branchName = branchButton.textContent.trim();
-                if (branchName && branchName !== 'main' && branchName !== 'master') {
+                if (branchName) {
                     return branchName;
                 }
             }
