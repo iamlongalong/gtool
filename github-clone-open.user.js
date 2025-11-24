@@ -136,10 +136,17 @@
             const match = url.match(this.urlPattern);
 
             if (!match) {
-                throw new Error('Invalid GitHub repository URL');
+                // Not a repository page (e.g., user profile, settings, etc.)
+                return null;
             }
 
             const [, username, repo, pathPart] = match;
+
+            // Validate that we have both username and repo
+            if (!username || !repo) {
+                return null;
+            }
+
             const info = {
                 username,
                 repo: repo.replace(/\.git$/, ''),
@@ -625,6 +632,13 @@ echo "Repository ready at: ${targetPath}"
 
         async init() {
             try {
+                // Check if we're on a repository page first
+                const repoInfo = this.parser.parse();
+                if (!repoInfo) {
+                    console.log('Not on a repository page, Clone&Open button will not be shown');
+                    return;
+                }
+
                 // Wait for page to be ready - use more reliable selector
                 await this.waitForElement('#repository-container-header, [data-hpc], main');
 
@@ -670,6 +684,16 @@ echo "Repository ready at: ${targetPath}"
 
                 // Parse GitHub page info
                 const repoInfo = this.parser.parse();
+
+                // Check if we're on a repository page
+                if (!repoInfo) {
+                    console.warn('Not on a repository page, cannot clone');
+                    alert('This page is not a GitHub repository page');
+                    this.uiManager.setLoading(false);
+                    console.groupEnd();
+                    return;
+                }
+
                 console.log('📂 Repository Info:', repoInfo);
 
                 // Get configuration
