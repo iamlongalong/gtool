@@ -38,4 +38,4 @@ echo "🚀 Starting server..."
 echo ""
 
 # Start the server
-node server.js
+PORT=18800 node server.js

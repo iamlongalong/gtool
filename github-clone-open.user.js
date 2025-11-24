@@ -20,7 +20,7 @@
     class ConfigManager {
         constructor() {
             this.defaults = {
-                apiUrl: 'http://localhost:8080/api/v1/exec',
+                apiUrl: 'http://localhost:18800/api/v1/exec',
                 baseDir: '~/code',
                 editor: 'code', // vscode, code-insiders, cursor, idea, etc.
                 defaultBranch: 'main',
