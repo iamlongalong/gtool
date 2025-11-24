@@ -1,0 +1,22 @@
+{
+  "name": "github-clone-open-server",
+  "version": "1.0.0",
+  "description": "HTTP server for GitHub Clone & Open userscript",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js",
+    "test": "node test-server.js"
+  },
+  "keywords": [
+    "github",
+    "clone",
+    "git",
+    "automation"
+  ],
+  "author": "",
+  "license": "MIT",
+  "engines": {
+    "node": ">=14.0.0"
+  }
+}
